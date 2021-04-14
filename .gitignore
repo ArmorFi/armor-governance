@@ -1,0 +1,9 @@
+node_modules/
+build/
+package-lock.json
+artifacts/
+cache/
+coverage/
+coverage.json
+gasReport.txt
+**/.DS_Store
