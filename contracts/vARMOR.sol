@@ -2,6 +2,8 @@
 
 pragma solidity 0.6.12;
 
+import "./interfaces/ITokenHelper.sol";
+
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -9,45 +11,36 @@ contract vARMOR is ERC20("voting Armor token", "vARMOR"), Ownable {
     using SafeMath for uint256;
     IERC20 public immutable armor;
     address public governance;
+    address[] public tokenHelpers;
    
-    uint256 public settledArmor; 
-    uint256 public dripEnd;
-    uint256 public dripAmount;
-    uint256 public dripDuration;
 
     constructor(address _armor, address _gov) public {
         armor = IERC20(_armor);
         governance = _gov;
-        dripDuration = 7 days;
     }
 
-    function slash(uint256 _amount) external {
-        require(msg.sender == governance,"!gov");
-        armor.transfer(msg.sender, _amount);
+    function addTokenHelper(address _helper) external {
+        require(msg.sender == governance, "!gov");
+        tokenHelpers.push(_helper);
     }
 
-    function activeArmor() public view returns(uint256) {
-        if(dripEnd < block.timestamp){
-            return settledArmor.add(dripAmount);
+    function removeTokenHelper(uint256 _idx) external {
+        require(msg.sender == governance, "!gov");
+        tokenHelpers[_idx] = tokenHelpers[tokenHelpers.length - 1];
+        tokenHelpers.pop();
+    }
+
+    function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
+        for(uint256 i = 0; i<tokenHelpers.length; i++){
+            ITokenHelper(tokenHelpers[i]).transferHelper(from, to, amount);
         }
-        return settledArmor.add(dripAmount*(dripDuration - (dripEnd - block.timestamp))/dripDuration);
     }
-
-    function notifyReward() external {
-        //flush all current reward
-        settledArmor = activeArmor();
-        //notify diff between settledArmor and balance
-        uint256 current = armor.balanceOf(address(this));
-        dripAmount = current.sub(settledArmor);
-        dripEnd = block.timestamp + dripDuration;
-    }
-
+    
     /// deposit and withdraw functions
     function deposit(uint256 _amount) external {
         armor.transferFrom(msg.sender, address(this), _amount);
         uint256 varmor = armorToVArmor(_amount);
         _mint(msg.sender, varmor);
-        settledArmor = settledArmor.add(_amount);
         _moveDelegates(address(0), _delegates[msg.sender], varmor);
         // checkpoint for totalSupply
         _writeCheckpointTotal(totalSupply());
@@ -58,7 +51,6 @@ contract vARMOR is ERC20("voting Armor token", "vARMOR"), Ownable {
         uint256 armorAmount = vArmorToArmor(_amount);
         _burn(msg.sender, armorAmount);
         _moveDelegates(_delegates[msg.sender], address(0), armorAmount);
-        settledArmor = settledArmor.sub(armorAmount);
         armor.transfer(msg.sender, armorAmount);
         // checkpoint for totalSupply
         _writeCheckpointTotal(totalSupply());
@@ -75,7 +67,7 @@ contract vARMOR is ERC20("voting Armor token", "vARMOR"), Ownable {
         if(totalSupply() == 0){
             return 0;
         }
-        return _varmor * activeArmor() / totalSupply();
+        return _varmor * armor.balanceOf(address(this)) / totalSupply();
     }
 
     /// @notice A record of each accounts delegate
