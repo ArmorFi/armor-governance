@@ -52,18 +52,11 @@ describe("vARMOR", function(){
           expect(await varmor.balanceOf(user.getAddress())).to.equal(AMOUNT);
         });
 
-        it("settled amount should increase", async function(){
-          expect(await varmor.settledArmor()).to.equal(AMOUNT);
-        });
-
-        it("active armor should increase", async function(){
-          expect(await varmor.activeArmor()).to.equal(AMOUNT);
-        });
       });
     });
   });
 
-  describe('ApplePieToken spec', function() {
+  describe('vARMOR spec', function() {
     const totalAmount = BigNumber.from('10000');
     const voteAmount = BigNumber.from('10');
     beforeEach(async function(){
