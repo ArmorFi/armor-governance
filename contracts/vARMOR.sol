@@ -57,17 +57,17 @@ contract vARMOR is ERC20("voting Armor token", "vARMOR"), Ownable {
     }
 
     function armorToVArmor(uint256 _armor) public view returns(uint256) {
-        if(totalSupply() == 0){
+        if(armor.balanceOf(address(this)) == 0){
             return _armor;
         }
-        return _armor * totalSupply() / _armor;
+        return _armor.mul( totalSupply()).div(armor.balanceOf(address(this)));
     }
 
     function vArmorToArmor(uint256 _varmor) public view returns(uint256) {
         if(totalSupply() == 0){
             return 0;
         }
-        return _varmor * armor.balanceOf(address(this)) / totalSupply();
+        return _varmor.mul(armor.balanceOf(address(this))).div(totalSupply());
     }
 
     /// @notice A record of each accounts delegate
@@ -100,7 +100,7 @@ contract vARMOR is ERC20("voting Armor token", "vARMOR"), Ownable {
     /// @notice A record of states for signing / validating signatures
     mapping (address => uint) public nonces;
 
-      /// @notice An event thats emitted when an account changes its delegate
+    /// @notice An event thats emitted when an account changes its delegate
     event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
 
     /// @notice An event thats emitted when a delegate account's vote balance changes

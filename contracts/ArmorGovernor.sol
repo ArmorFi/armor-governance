@@ -16,13 +16,13 @@ contract GovernorAlpha {
 
     function setQuorumRatio(uint256 newRatio) external {
         require(newRatio <= 1e18, "too big");
-        require(msg.sender == address(this), "!this");
+        require(msg.sender == address(timelock), "!timelock");
         quorumRatio = newRatio;
     }
 
     function setThresholdRatio(uint256 newRatio) external {
         require(newRatio <= 1e18, "too big");
-        require(msg.sender == address(this), "!this");
+        require(msg.sender == address(timelock), "!timelock");
         thresholdRatio = newRatio;
     }
     /// @notice The number of votes in support of a proposal required in order for a quorum to be reached and for a vote to succeed
@@ -141,7 +141,7 @@ contract GovernorAlpha {
     }
 
     function propose(address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description) public returns (uint) {
-        require(varmor.getPriorVotes(msg.sender, sub256(block.number, 1)) > proposalThreshold(block.number - 1), "GovernorAlpha::propose: proposer votes below proposal threshold");
+        require(varmor.getPriorVotes(msg.sender, sub256(block.number, 1)) > proposalThreshold(sub256(block.number,1)), "GovernorAlpha::propose: proposer votes below proposal threshold");
         require(targets.length == values.length && targets.length == signatures.length && targets.length == calldatas.length, "GovernorAlpha::propose: proposal function information arity mismatch");
         require(targets.length != 0, "GovernorAlpha::propose: must provide actions");
         require(targets.length <= proposalMaxOperations(), "GovernorAlpha::propose: too many actions");
@@ -211,7 +211,7 @@ contract GovernorAlpha {
         require(state != ProposalState.Executed, "GovernorAlpha::cancel: cannot cancel executed proposal");
 
         Proposal storage proposal = proposals[proposalId];
-        require(varmor.getPriorVotes(proposal.proposer, sub256(block.number, 1)) < proposalThreshold(block.number - 1), "GovernorAlpha::cancel: proposer above threshold");
+        require(varmor.getPriorVotes(proposal.proposer, sub256(block.number, 1)) < proposalThreshold(sub256(block.number,1)), "GovernorAlpha::cancel: proposer above threshold");
 
         proposal.canceled = true;
         for (uint i = 0; i < proposal.targets.length; i++) {

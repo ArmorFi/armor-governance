@@ -58,10 +58,10 @@ contract Timelock {
     }
 
     function setPendingGov(address pendingGov_) public {
-        require(msg.sender == address(this), "Timelock::setPendingAdmin: Call must come from Timelock.");
+        require(msg.sender == address(this), "Timelock::setPendingGov: Call must come from Timelock.");
         pendingGov = pendingGov_;
 
-        emit NewPendingAdmin(pendingGov);
+        emit NewPendingGov(pendingGov);
     }
 
     function acceptAdmin() public {
@@ -80,7 +80,7 @@ contract Timelock {
     }
 
     function queueTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) public returns (bytes32) {
-        require(msg.sender == admin || msg.sender == gov, "Timelock::queueTransaction: Call must come from admin.");
+        require(msg.sender == admin || msg.sender == gov, "Timelock::queueTransaction: Call must come from admin or governance.");
         require(eta >= getBlockTimestamp().add(delay), "Timelock::queueTransaction: Estimated execution block must satisfy delay.");
 
         bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
@@ -91,7 +91,7 @@ contract Timelock {
     }
 
     function cancelTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) public {
-        require(msg.sender == admin || msg.sender == gov, "Timelock::cancelTransaction: Call must come from admin.");
+        require(msg.sender == admin || msg.sender == gov, "Timelock::cancelTransaction: Call must come from admin or governance.");
 
         bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
         queuedTransactions[txHash] = false;
@@ -100,7 +100,7 @@ contract Timelock {
     }
 
     function executeTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) public payable returns (bytes memory) {
-        require(msg.sender == admin || msg.sender == gov, "Timelock::executeTransaction: Call must come from admin.");
+        require(msg.sender == admin || msg.sender == gov, "Timelock::executeTransaction: Call must come from admin or governance.");
 
         bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
         require(queuedTransactions[txHash], "Timelock::executeTransaction: Transaction hasn't been queued.");
