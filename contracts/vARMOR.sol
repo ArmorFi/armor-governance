@@ -35,15 +35,20 @@ contract vARMOR is ERC20("voting Armor token", "vARMOR"), Ownable {
             ITokenHelper(tokenHelpers[i]).transferHelper(from, to, amount);
         }
     }
+
+    function slash(uint256 _amount) external {
+        require(msg.sender == governance, "!gov");
+        armor.transfer(msg.sender, _amount);
+    }
     
     /// deposit and withdraw functions
     function deposit(uint256 _amount) external {
-        armor.transferFrom(msg.sender, address(this), _amount);
         uint256 varmor = armorToVArmor(_amount);
         _mint(msg.sender, varmor);
         _moveDelegates(address(0), _delegates[msg.sender], varmor);
         // checkpoint for totalSupply
         _writeCheckpointTotal(totalSupply());
+        armor.transferFrom(msg.sender, address(this), _amount);
     }
 
     /// withdraw share
@@ -64,7 +69,7 @@ contract vARMOR is ERC20("voting Armor token", "vARMOR"), Ownable {
     }
 
     function vArmorToArmor(uint256 _varmor) public view returns(uint256) {
-        if(totalSupply() == 0){
+        if(armor.balanceOf(address(this)) == 0){
             return 0;
         }
         return _varmor.mul(armor.balanceOf(address(this))).div(totalSupply());
