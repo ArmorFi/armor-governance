@@ -57,7 +57,7 @@ contract vARMOR is ERC20("voting Armor token", "vARMOR"), Ownable {
     }
 
     function armorToVArmor(uint256 _armor) public view returns(uint256) {
-        if(armor.balanceOf(address(this)) == 0){
+        if(totalSupply() == 0){
             return _armor;
         }
         return _armor.mul( totalSupply()).div(armor.balanceOf(address(this)));

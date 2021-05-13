@@ -51,7 +51,6 @@ describe("vARMOR", function(){
         it("balanceOf should increase", async function(){
           expect(await varmor.balanceOf(user.getAddress())).to.equal(AMOUNT);
         });
-
       });
     });
   });

@@ -27,7 +27,7 @@ describe("Timelock", function(){
   describe("#queueTransaction", function(){
     it("should fail if msg.sender is not gov or admin", async function(){
       const timestamp = await getTimestamp();
-      await expect(timelock.connect(anon).queueTransaction(token.address, 0, "transfer(address,uint256)", data, timestamp.add(86400*3))).to.be.revertedWith("Timelock::queueTransaction: Call must come from admin.");
+      await expect(timelock.connect(anon).queueTransaction(token.address, 0, "transfer(address,uint256)", data, timestamp.add(86400*3))).to.be.revertedWith("Timelock::queueTransaction: Call must come from admin or governance.");
     });
     it("should fail if eta is too soon", async function(){
       const timestamp = await getTimestamp();
@@ -54,7 +54,7 @@ describe("Timelock", function(){
     });
 
     it("should fail if msg.sender is not gov or admin", async function(){
-      await expect(timelock.connect(anon).cancelTransaction(token.address, 0, "transfer(address,uint256)", data, eta)).to.be.revertedWith("Timelock::cancelTransaction: Call must come from admin.");
+      await expect(timelock.connect(anon).cancelTransaction(token.address, 0, "transfer(address,uint256)", data, eta)).to.be.revertedWith("Timelock::cancelTransaction: Call must come from admin or governance.");
     });
     it("should set tx hash as not queued", async function(){
       await timelock.connect(admin).cancelTransaction(token.address, 0, "transfer(address,uint256)", data, eta);
@@ -77,7 +77,7 @@ describe("Timelock", function(){
 
     it("should fail if msg.sender is not gov or admin", async function(){
       await increase(86400 * 4);
-      await expect(timelock.connect(anon).executeTransaction(token.address, 0, "transfer(address,uint256)", data, eta)).to.be.revertedWith("Timelock::executeTransaction: Call must come from admin.");
+      await expect(timelock.connect(anon).executeTransaction(token.address, 0, "transfer(address,uint256)", data, eta)).to.be.revertedWith("Timelock::executeTransaction: Call must come from admin or governance.");
     });
     
     it("should fail if tx is not queued", async function(){
