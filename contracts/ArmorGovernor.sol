@@ -146,7 +146,7 @@ contract GovernorAlpha {
     }
 
     function setPendingAdmin(address pendingAdmin_) public  {
-        require(msg.sender == address(this), "!gov");
+        require(msg.sender == address(timelock), "!timelock");
         pendingAdmin = pendingAdmin_;
     }
 
