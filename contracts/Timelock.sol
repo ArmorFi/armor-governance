@@ -7,8 +7,6 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 contract Timelock {
     using SafeMath for uint;
 
-    event NewAdmin(address indexed newAdmin);
-    event NewPendingAdmin(address indexed newPendingAdmin);
     event NewGov(address indexed newGov);
     event NewPendingGov(address indexed newPendingGov);
     event NewDelay(uint indexed newDelay);
@@ -22,19 +20,16 @@ contract Timelock {
 
     address public gov;
     address public pendingGov;
-    address public admin;
-    address public pendingAdmin;
     uint public delay;
 
     mapping (bytes32 => bool) public queuedTransactions;
 
 
-    constructor(address gov_, address admin_, uint delay_) public {
+    constructor(address gov_, uint delay_) public {
         require(delay_ >= MINIMUM_DELAY, "Timelock::constructor: Delay must exceed minimum delay.");
         require(delay_ <= MAXIMUM_DELAY, "Timelock::setDelay: Delay must not exceed maximum delay.");
 
         gov = gov_;
-        admin = admin_;
         delay = delay_;
     }
 
@@ -64,23 +59,8 @@ contract Timelock {
         emit NewPendingGov(pendingGov);
     }
 
-    function acceptAdmin() public {
-        require(msg.sender == pendingAdmin, "Timelock::acceptAdmin: Call must come from pendingAdmin.");
-        admin = msg.sender;
-        pendingAdmin = address(0);
-
-        emit NewAdmin(admin);
-    }
-
-    function setPendingAdmin(address pendingAdmin_) public {
-        require(msg.sender == address(this), "Timelock::setPendingAdmin: Call must come from Timelock.");
-        pendingAdmin = pendingAdmin_;
-
-        emit NewPendingAdmin(pendingAdmin);
-    }
-
     function queueTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) public returns (bytes32) {
-        require(msg.sender == admin || msg.sender == gov, "Timelock::queueTransaction: Call must come from admin or governance.");
+        require(msg.sender == gov, "Timelock::queueTransaction: Call must come from governance.");
         require(eta >= getBlockTimestamp().add(delay), "Timelock::queueTransaction: Estimated execution block must satisfy delay.");
 
         bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
@@ -91,7 +71,7 @@ contract Timelock {
     }
 
     function cancelTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) public {
-        require(msg.sender == admin || msg.sender == gov, "Timelock::cancelTransaction: Call must come from admin or governance.");
+        require(msg.sender == gov, "Timelock::cancelTransaction: Call must come from governance.");
 
         bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
         queuedTransactions[txHash] = false;
@@ -100,7 +80,7 @@ contract Timelock {
     }
 
     function executeTransaction(address target, uint value, string memory signature, bytes memory data, uint eta) public payable returns (bytes memory) {
-        require(msg.sender == admin || msg.sender == gov, "Timelock::executeTransaction: Call must come from admin or governance.");
+        require(msg.sender == gov, "Timelock::executeTransaction: Call must come from governance.");
 
         bytes32 txHash = keccak256(abi.encode(target, value, signature, data, eta));
         require(queuedTransactions[txHash], "Timelock::executeTransaction: Transaction hasn't been queued.");
