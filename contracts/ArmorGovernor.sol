@@ -221,6 +221,20 @@ contract GovernorAlpha {
         emit ProposalCanceled(proposalId);
     }
 
+    // Used to cancel a malicious transaction on timelock.
+    function reject(uint proposalId) public {
+        ProposalState state = state(proposalId);
+        require(state == ProposalState.Defeated, "GovernorAlpha::reject: rejection has not been defeated");
+
+        Proposal storage proposal = proposals[proposalId];
+        proposal.canceled = true;
+        for (uint i = 0; i < proposal.targets.length; i++) {
+            timelock.cancelTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
+        }
+
+        emit ProposalCanceled(proposalId);
+    }
+
     function getActions(uint proposalId) public view returns (address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas) {
         Proposal storage p = proposals[proposalId];
         return (p.targets, p.values, p.signatures, p.calldatas);
