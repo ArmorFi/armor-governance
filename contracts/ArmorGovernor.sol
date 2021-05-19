@@ -224,7 +224,8 @@ contract GovernorAlpha {
     // Used to cancel a malicious transaction on timelock.
     function reject(uint proposalId) public {
         ProposalState state = state(proposalId);
-        require(state == ProposalState.Defeated, "GovernorAlpha::reject: rejection has not been defeated");
+        // We add this end to make sure it wasn't defeated for a lack of quorum. Would add a separate rejection state but want to change the contract as little as possible.
+        require(state == ProposalState.Defeated && proposal.forVotes <= proposal.againstVotes, "GovernorAlpha::reject: proposal has not been defeated");
 
         Proposal storage proposal = proposals[proposalId];
         proposal.canceled = true;
