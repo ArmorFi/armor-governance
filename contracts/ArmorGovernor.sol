@@ -29,7 +29,7 @@ contract GovernorAlpha {
     }
 
     function setVotingPeriod(uint256 newPeriod) external {
-        require(newRatio <= 1e18, "too big");
+        require(newPeriod <= 1e18, "too big");
         require(msg.sender == address(timelock), "!timelock");
         votingPeriod = newPeriod;
     }
