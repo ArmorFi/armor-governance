@@ -14,6 +14,8 @@ contract GovernorAlpha {
 
     uint256 public thresholdRatio;
 
+    uint256 public votingPeriod;
+
     function setQuorumRatio(uint256 newRatio) external {
         require(newRatio <= 1e18, "too big");
         require(msg.sender == address(timelock), "!timelock");
@@ -25,6 +27,13 @@ contract GovernorAlpha {
         require(msg.sender == address(timelock), "!timelock");
         thresholdRatio = newRatio;
     }
+
+    function setVotingPeriod(uint256 newPeriod) external {
+        require(newRatio <= 1e18, "too big");
+        require(msg.sender == address(timelock), "!timelock");
+        votingPeriod = newPeriod;
+    }
+
     /// @notice The number of votes in support of a proposal required in order for a quorum to be reached and for a vote to succeed
     function quorumVotes(uint256 blockNumber) public view returns (uint) { return varmor.getPriorTotalVotes(blockNumber) * quorumRatio  / 1e18; } // 4% of VArmor
 
@@ -36,9 +45,6 @@ contract GovernorAlpha {
 
     /// @notice The delay before voting on a proposal may take place, once proposed
     function votingDelay() public pure returns (uint) { return 1; } // 1 block
-
-    /// @notice The duration of voting on a proposal, in blocks
-    function votingPeriod() public pure returns (uint) { return 40_320; } // ~7 days in blocks (assuming 15s blocks)
 
     /// @notice The address of the VArmorswap Protocol Timelock
     ITimelock public timelock;
