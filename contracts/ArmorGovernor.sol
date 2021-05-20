@@ -156,8 +156,13 @@ contract GovernorAlpha {
         pendingAdmin = address(0);
     }
 
+    function acceptTimelockGov() public {
+        require(msg.sender == admin, "!admin");
+        timelock.acceptGov();
+    }
+
     function propose(address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description) public returns (uint) {
-        require(varmor.getPriorVotes(msg.sender, sub256(block.number, 1)) > proposalThreshold(sub256(block.number,1)), "GovernorAlpha::propose: proposer votes below proposal threshold");
+        require(varmor.getPriorVotes(msg.sender, sub256(block.number, 1)) > proposalThreshold(sub256(block.number,1)) || msg.sender == admin, "GovernorAlpha::propose: proposer votes below proposal threshold");
         require(targets.length == values.length && targets.length == signatures.length && targets.length == calldatas.length, "GovernorAlpha::propose: proposal function information arity mismatch");
         require(targets.length != 0, "GovernorAlpha::propose: must provide actions");
         require(targets.length <= proposalMaxOperations(), "GovernorAlpha::propose: too many actions");
@@ -198,8 +203,8 @@ contract GovernorAlpha {
 
     function queue(uint proposalId) public {
         // executing the executed, canceled, expired proposal will be guarded in timelock so no check for state when admin
-        require(state(proposalId) == ProposalState.Succeeded || msg.sender == admin, "GovernorAlpha::queue: proposal can only be queued if it is succeeded");
         Proposal storage proposal = proposals[proposalId];
+        require(state(proposalId) == ProposalState.Succeeded || msg.sender == admin, "GovernorAlpha::queue: proposal can only be queued if it is succeeded");
         uint eta = add256(block.timestamp, timelock.delay());
         for (uint i = 0; i < proposal.targets.length; i++) {
             _queueOrRevert(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], eta);
@@ -223,6 +228,19 @@ contract GovernorAlpha {
             timelock.executeTransaction{value:proposal.values[i]}(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
         }
         emit ProposalExecuted(proposalId);
+    }
+
+    function reject(uint proposalId) public {
+        Proposal storage proposal = proposals[proposalId];
+        // We add this end to make sure it wasn't defeated for a lack of quorum. Would add a separate rejection state but want to change the contract as little as possible.
+        require(proposal.forVotes < proposal.againstVotes, "GovernorAlpha::reject: proposal has not been defeated");
+
+        proposal.canceled = true;
+        for (uint i = 0; i < proposal.targets.length; i++) {
+            timelock.cancelTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
+        }
+
+        emit ProposalCanceled(proposalId);
     }
 
     function cancel(uint proposalId) public {
