@@ -232,9 +232,9 @@ contract GovernorAlpha {
 
     function reject(uint proposalId) public {
         ProposalState state = state(proposalId);
-        // We add this end to make sure it wasn't defeated for a lack of quorum. Would add a separate rejection state but want to change the contract as little as possible.
-        require(state == ProposalState.Defeated, "GovernorAlpha::reject: proposal has not been defeated");
         Proposal storage proposal = proposals[proposalId];
+        // We add this end to make sure it wasn't defeated for a lack of quorum. Would add a separate rejection state but want to change the contract as little as possible.
+        require(proposal.forVotes >= quorumVotes(proposal.endBlock) && state == ProposalState.Defeated, "GovernorAlpha::reject: proposal has not been defeated");
 
         proposal.canceled = true;
         for (uint i = 0; i < proposal.targets.length; i++) {
@@ -250,7 +250,6 @@ contract GovernorAlpha {
 
         Proposal storage proposal = proposals[proposalId];
         //admin can bypass this
-        //if admin vs gov argue happens, it will be DoS lol no execution for both of you
         require(varmor.getPriorVotes(proposal.proposer, sub256(block.number, 1)) < proposalThreshold(sub256(block.number,1)) || msg.sender == admin, "GovernorAlpha::cancel: proposer above threshold");
 
         proposal.canceled = true;
