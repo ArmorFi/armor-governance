@@ -36,11 +36,8 @@ describe("Governance", function(){
     await token.transfer(admin.getAddress(), "10000000000000000");
     await token.connect(admin).approve(varmor.address, "10000000000000000");
     await varmor.connect(admin).deposit("10000000000000000");
-    console.log(await varmor.totalSupply());
-    console.log(await varmor.balanceOf(admin.getAddress()));
     await mine();
     await varmor.connect(admin).delegate(admin.getAddress());
-    console.log(await varmor.getPriorVotes(admin.getAddress(), (await getBlockNumber()).sub(1)));
 
     await token.transfer(timelock.address, 100);
     data = abiCoder.encode(["address","uint256"],[varmor.address, 100]);
@@ -57,8 +54,39 @@ describe("Governance", function(){
       await gov.connect(admin).propose([token.address], [0], ["transfer(address,uint256)"],[data], "going through with admin priv");
       await gov.connect(admin).queue(1);
       await gov.connect(against).castVote(1, false);
-      console.log(await gov.proposals(1));
+      let mining = [];
+
+      for(let i = 0; i <= 40320; i++){
+        mining.push(mine());
+      }
+
+      await Promise.all(mining);
+
       await gov.connect(against).reject(1);
+      await increase((86400*2 + 101));
+      await expect(gov.connect(admin).execute(1)).to.be.reverted;
+    });
+    it("should be able to reject dao's proposal", async function(){
+      await token.transfer(against.getAddress(), "20000000000000000");
+      await token.connect(against).approve(varmor.address, "20000000000000000");
+      await varmor.connect(against).deposit("20000000000000000");
+      await mine();
+      await varmor.connect(against).delegate(against.getAddress());
+      await gov.connect(against).propose([token.address], [0], ["transfer(address,uint256)"],[data], "going through with admin priv");
+      await mine();
+      await mine();
+      await gov.connect(against).castVote(1, true);
+      let mining = [];
+      for(let i = 0; i <= 40320; i++){
+        mining.push(mine());
+      }
+
+      await gov.connect(against).queue(1);
+      await Promise.all(mining);
+      await increase((86400*2 + 101));
+
+      await gov.connect(admin).cancel(1);
+      await expect(gov.connect(against).execute(1)).to.be.reverted;
     });
   });
 });

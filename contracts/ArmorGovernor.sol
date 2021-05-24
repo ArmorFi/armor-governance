@@ -231,9 +231,10 @@ contract GovernorAlpha {
     }
 
     function reject(uint proposalId) public {
-        Proposal storage proposal = proposals[proposalId];
+        ProposalState state = state(proposalId);
         // We add this end to make sure it wasn't defeated for a lack of quorum. Would add a separate rejection state but want to change the contract as little as possible.
-        require(proposal.forVotes < proposal.againstVotes, "GovernorAlpha::reject: proposal has not been defeated");
+        require(state == ProposalState.Defeated, "GovernorAlpha::reject: proposal has not been defeated");
+        Proposal storage proposal = proposals[proposalId];
 
         proposal.canceled = true;
         for (uint i = 0; i < proposal.targets.length; i++) {
