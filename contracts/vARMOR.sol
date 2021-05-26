@@ -5,9 +5,8 @@ pragma solidity 0.6.12;
 import "./interfaces/ITokenHelper.sol";
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract vARMOR is ERC20("voting Armor token", "vARMOR"), Ownable {
+contract vARMOR is ERC20("voting Armor token", "vARMOR") {
     using SafeMath for uint256;
     IERC20 public immutable armor;
     address public governance;
@@ -31,6 +30,8 @@ contract vARMOR is ERC20("voting Armor token", "vARMOR"), Ownable {
     }
 
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal override {
+        _moveDelegates(_delegates[from], _delegates[to], amount);
+
         for(uint256 i = 0; i<tokenHelpers.length; i++){
             ITokenHelper(tokenHelpers[i]).transferHelper(from, to, amount);
         }
@@ -39,6 +40,11 @@ contract vARMOR is ERC20("voting Armor token", "vARMOR"), Ownable {
     function slash(uint256 _amount) external {
         require(msg.sender == governance, "!gov");
         armor.transfer(msg.sender, _amount);
+    }
+
+    function transferGov(address _newGov) external {
+        require(msg.sender == governance, "!gov");
+        governance = _newGov;
     }
     
     /// deposit and withdraw functions
@@ -297,8 +303,7 @@ contract vARMOR is ERC20("voting Armor token", "vARMOR"), Ownable {
                 uint256 srcRepOld = srcRepNum > 0 ? checkpoints[srcRep][srcRepNum - 1].votes : 0;
                 uint256 srcRepNew = srcRepOld.sub(amount);
                 _writeCheckpoint(srcRep, srcRepNum, srcRepOld, srcRepNew);
-            }
-
+            } 
             if (dstRep != address(0)) {
                 // increase new representative
                 uint32 dstRepNum = numCheckpoints[dstRep];

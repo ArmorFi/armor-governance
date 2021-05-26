@@ -11,6 +11,15 @@ export async function increase(seconds: number) {
   await (signer.provider as providers.JsonRpcProvider).send("evm_increaseTime", [seconds]);
 }
 
+export async function getBlockNumber() : Promise<BigNumber> {
+  const signers = await ethers.getSigners();
+  const signer = signers[0];
+  const res = await (signer.provider as providers.JsonRpcProvider).send("eth_blockNumber", []);
+  console.log(res.toString());
+  return BigNumber.from(res);
+}
+
+
 export async function mine() {
   const signers = await ethers.getSigners();
   const signer = signers[0];

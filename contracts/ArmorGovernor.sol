@@ -7,6 +7,10 @@ pragma experimental ABIEncoderV2;
 import "./interfaces/IVArmor.sol";
 import "./interfaces/ITimelock.sol";
 contract GovernorAlpha {
+    address public admin;
+
+    address public pendingAdmin;
+
     /// @notice The name of this contract
     string public constant name = "VArmor Governor Alpha";
 
@@ -137,17 +141,34 @@ contract GovernorAlpha {
     /// @notice An event emitted when a proposal has been executed in the Timelock
     event ProposalExecuted(uint id);
 
-    constructor(address timelock_, address varmor_, uint256 quorum_, uint256 threshold_) public {
+    constructor(address admin_, address timelock_, address varmor_, uint256 quorum_, uint256 threshold_) public {
         require(quorum_ <= 1e18, "too big");
         require(threshold_ <= 1e18, "too big");
+        admin = admin_;
         timelock = ITimelock(timelock_);
         varmor = IVArmor(varmor_);
         quorumRatio = quorum_;
         thresholdRatio = threshold_;
     }
 
+    function setPendingAdmin(address pendingAdmin_) public  {
+        require(msg.sender == address(timelock), "!timelock");
+        pendingAdmin = pendingAdmin_;
+    }
+
+    function acceptAdmin() public {
+        require(msg.sender == pendingAdmin, "!pendingAdmin");
+        admin = msg.sender;
+        pendingAdmin = address(0);
+    }
+
+    function acceptTimelockGov() public {
+        require(msg.sender == admin, "!admin");
+        timelock.acceptGov();
+    }
+
     function propose(address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description) public returns (uint) {
-        require(varmor.getPriorVotes(msg.sender, sub256(block.number, 1)) > proposalThreshold(sub256(block.number,1)), "GovernorAlpha::propose: proposer votes below proposal threshold");
+        require(varmor.getPriorVotes(msg.sender, sub256(block.number, 1)) > proposalThreshold(sub256(block.number,1)) || msg.sender == admin, "GovernorAlpha::propose: proposer votes below proposal threshold");
         require(targets.length == values.length && targets.length == signatures.length && targets.length == calldatas.length, "GovernorAlpha::propose: proposal function information arity mismatch");
         require(targets.length != 0, "GovernorAlpha::propose: must provide actions");
         require(targets.length <= proposalMaxOperations(), "GovernorAlpha::propose: too many actions");
@@ -187,8 +208,9 @@ contract GovernorAlpha {
     }
 
     function queue(uint proposalId) public {
-        require(state(proposalId) == ProposalState.Succeeded, "GovernorAlpha::queue: proposal can only be queued if it is succeeded");
+        // executing the executed, canceled, expired proposal will be guarded in timelock so no check for state when admin
         Proposal storage proposal = proposals[proposalId];
+        require(state(proposalId) == ProposalState.Succeeded || msg.sender == admin, "GovernorAlpha::queue: proposal can only be queued if it is succeeded");
         uint eta = add256(block.timestamp, timelock.delay());
         for (uint i = 0; i < proposal.targets.length; i++) {
             _queueOrRevert(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], eta);
@@ -203,7 +225,9 @@ contract GovernorAlpha {
     }
 
     function execute(uint proposalId) public payable {
-        require(state(proposalId) == ProposalState.Queued, "GovernorAlpha::execute: proposal can only be executed if it is queued");
+        //admin can bypass this
+        // executing the executed, canceled, expired proposal will be guarded in timelock so no check for state when admin
+        require(state(proposalId) == ProposalState.Queued || msg.sender == admin, "GovernorAlpha::execute: proposal can only be executed if it is queued");
         Proposal storage proposal = proposals[proposalId];
         proposal.executed = true;
         for (uint i = 0; i < proposal.targets.length; i++) {
@@ -212,12 +236,27 @@ contract GovernorAlpha {
         emit ProposalExecuted(proposalId);
     }
 
+    function reject(uint proposalId) public {
+        ProposalState state = state(proposalId);
+        Proposal storage proposal = proposals[proposalId];
+        // We add this end to make sure it wasn't defeated for a lack of quorum. Would add a separate rejection state but want to change the contract as little as possible.
+        require(proposal.forVotes >= quorumVotes(proposal.endBlock) && state == ProposalState.Defeated, "GovernorAlpha::reject: proposal has not been defeated");
+
+        proposal.canceled = true;
+        for (uint i = 0; i < proposal.targets.length; i++) {
+            timelock.cancelTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
+        }
+
+        emit ProposalCanceled(proposalId);
+    }
+
     function cancel(uint proposalId) public {
         ProposalState state = state(proposalId);
         require(state != ProposalState.Executed, "GovernorAlpha::cancel: cannot cancel executed proposal");
 
         Proposal storage proposal = proposals[proposalId];
-        require(varmor.getPriorVotes(proposal.proposer, sub256(block.number, 1)) < proposalThreshold(sub256(block.number,1)), "GovernorAlpha::cancel: proposer above threshold");
+        //admin can bypass this
+        require(varmor.getPriorVotes(proposal.proposer, sub256(block.number, 1)) < proposalThreshold(sub256(block.number,1)) || msg.sender == admin, "GovernorAlpha::cancel: proposer above threshold");
 
         proposal.canceled = true;
         for (uint i = 0; i < proposal.targets.length; i++) {

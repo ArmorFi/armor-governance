@@ -37,6 +37,9 @@ export default {
       }
     ]
   },
+  mocha: {
+    timeout: 6000000000000
+  },
   networks: {
     hardhat: {
       gas: 10000000,
@@ -44,7 +47,7 @@ export default {
         accountsBalance: "10000000000000000000000000"
       },
       allowUnlimitedContractSize: true,
-      timeout: 1000000,
+      timeout: 6000000000000
       //forking: {
       //  url: "https://eth-mainnet.alchemyapi.io/v2/90dtUWHmLmwbYpvIeC53UpAICALKyoIu",
       //  blockNumber: 12049335
