@@ -181,7 +181,7 @@ contract GovernorAlpha {
         }
 
         uint startBlock = add256(block.number, votingDelay());
-        uint endBlock = add256(startBlock, votingPeriod());
+        uint endBlock = add256(startBlock, votingPeriod);
 
         proposalCount++;
         Proposal memory newProposal = Proposal({
@@ -237,10 +237,9 @@ contract GovernorAlpha {
     }
 
     function reject(uint proposalId) public {
-        ProposalState state = state(proposalId);
         Proposal storage proposal = proposals[proposalId];
         // We add this end to make sure it wasn't defeated for a lack of quorum. Would add a separate rejection state but want to change the contract as little as possible.
-        require(proposal.forVotes >= quorumVotes(proposal.endBlock) && state == ProposalState.Defeated, "GovernorAlpha::reject: proposal has not been defeated");
+        require(proposal.againstVotes >= quorumVotes(proposal.endBlock) && proposal.forVotes <= proposal.againstVotes, "GovernorAlpha::reject: proposal has not been defeated");
 
         proposal.canceled = true;
         for (uint i = 0; i < proposal.targets.length; i++) {
@@ -258,21 +257,6 @@ contract GovernorAlpha {
         //admin can bypass this
         require(varmor.getPriorVotes(proposal.proposer, sub256(block.number, 1)) < proposalThreshold(sub256(block.number,1)) || msg.sender == admin, "GovernorAlpha::cancel: proposer above threshold");
 
-        proposal.canceled = true;
-        for (uint i = 0; i < proposal.targets.length; i++) {
-            timelock.cancelTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
-        }
-
-        emit ProposalCanceled(proposalId);
-    }
-
-    // Used to cancel a malicious transaction on timelock.
-    function reject(uint proposalId) public {
-        ProposalState state = state(proposalId);
-        // We add this end to make sure it wasn't defeated for a lack of quorum. Would add a separate rejection state but want to change the contract as little as possible.
-        require(state == ProposalState.Defeated && proposal.forVotes <= proposal.againstVotes, "GovernorAlpha::reject: proposal has not been defeated");
-
-        Proposal storage proposal = proposals[proposalId];
         proposal.canceled = true;
         for (uint i = 0; i < proposal.targets.length; i++) {
             timelock.cancelTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
