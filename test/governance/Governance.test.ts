@@ -43,7 +43,7 @@ describe("Governance", function(){
     data = abiCoder.encode(["address","uint256"],[varmor.address, 100]);
   });
 
-  describe.only("#reject", function(){
+  describe("#reject", function(){
     it("should be able to reject admin's proposal", async function(){
       await token.transfer(against.getAddress(), "20000000000000000");
       await token.connect(against).approve(varmor.address, "20000000000000000");

@@ -84,24 +84,24 @@ contract vARMOR is ERC20("Voting Armor Token", "vARMOR") {
     /// withdraw share
     function finalizeWithdrawal() external {
         WithdrawRequest memory request = withdrawRequests[msg.sender];
-        require(request.time > 0 && block.timestamp < request.time + withdrawDelay, "Withdrawal may not be completed yet.");
+        require(request.time > 0 && block.timestamp >= request.time + withdrawDelay, "Withdrawal may not be completed yet.");
         delete withdrawRequests[msg.sender];
         pending = pending.sub(uint256(request.amount));
         armor.transfer(msg.sender, request.amount);
     }
 
     function armorToVArmor(uint256 _armor) public view returns(uint256) {
-        if(totalSupply().sub(pending) == 0){
+        if(totalSupply().add(pending) == 0){
             return _armor;
         }
-        return _armor.mul( totalSupply().sub(pending) ).div( armor.balanceOf( address(this) ) );
+        return _armor.mul( totalSupply().add(pending) ).div( armor.balanceOf( address(this) ) );
     }
 
     function vArmorToArmor(uint256 _varmor) public view returns(uint256) {
         if(armor.balanceOf( address(this) ) == 0){
             return 0;
         }
-        return _varmor.mul( armor.balanceOf( address(this) ) ).div( totalSupply().sub(pending) );
+        return _varmor.mul( armor.balanceOf( address(this) ) ).div( totalSupply().add(pending) );
     }
 
     /// @notice A record of each accounts delegate
