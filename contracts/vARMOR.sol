@@ -84,8 +84,9 @@ contract vARMOR is ERC20("Voting Armor Token", "vARMOR") {
         WithdrawRequest memory request = withdrawRequests[msg.sender];
         require(request.time > 0 && block.timestamp >= request.time + withdrawDelay, "Withdrawal may not be completed yet.");
         delete withdrawRequests[msg.sender];
+        uint256 armorAmount = vArmorToArmor(request.amount);
         pending = pending.sub(uint256(request.amount));
-        armor.transfer( msg.sender, vArmorToArmor(request.amount) );
+        armor.transfer(msg.sender, armorAmount);
     }
 
     function armorToVArmor(uint256 _armor) public view returns(uint256) {
