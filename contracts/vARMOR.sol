@@ -4,14 +4,21 @@ pragma solidity 0.6.12;
 
 import "./interfaces/ITokenHelper.sol";
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "./openzeppelin/token/ERC20/ERC20.sol";
 
-contract vARMOR is ERC20("voting Armor token", "vARMOR") {
+contract vARMOR is ERC20("Voting Armor Token", "vARMOR") {
     using SafeMath for uint256;
     IERC20 public immutable armor;
     address public governance;
+    uint48 public withdrawDelay;
+    uint256 public pending;
     address[] public tokenHelpers;
-   
+    mapping (address => WithdrawRequest) public withdrawRequests;
+
+    struct WithdrawRequest {
+        uint208 amount;
+        uint48 time;
+    }
 
     constructor(address _armor, address _gov) public {
         armor = IERC20(_armor);
@@ -47,6 +54,11 @@ contract vARMOR is ERC20("voting Armor token", "vARMOR") {
         governance = _newGov;
     }
     
+    function changeDelay(uint48 _newDelay) external {
+        require(msg.sender == governance, "!gov");
+        withdrawDelay = _newDelay;
+    }
+    
     /// deposit and withdraw functions
     function deposit(uint256 _amount) external {
         uint256 varmor = armorToVArmor(_amount);
@@ -58,27 +70,38 @@ contract vARMOR is ERC20("voting Armor token", "vARMOR") {
     }
 
     /// withdraw share
-    function withdraw(uint256 _amount) external {
-        uint256 armorAmount = vArmorToArmor(_amount);
-        _burn(msg.sender, armorAmount);
-        _moveDelegates(_delegates[msg.sender], address(0), armorAmount);
-        armor.transfer(msg.sender, armorAmount);
+    function requestWithdrawal(uint256 _amount) external {
+        _burn(msg.sender, _amount);
+        _moveDelegates(_delegates[msg.sender], address(0), _amount);
         // checkpoint for totalSupply
         _writeCheckpointTotal(totalSupply());
+        pending = pending.add(_amount);
+        withdrawRequests[msg.sender] = WithdrawRequest(withdrawRequests[msg.sender].amount + uint208(_amount), uint48(block.timestamp));
+    }
+    
+    /// withdraw share
+    function finalizeWithdrawal() external {
+        WithdrawRequest memory request = withdrawRequests[msg.sender];
+        require(request.time > 0 && block.timestamp >= request.time + withdrawDelay, "Withdrawal may not be completed yet.");
+        delete withdrawRequests[msg.sender];
+        uint256 armorAmount = vArmorToArmor(request.amount);
+        pending = pending.sub(uint256(request.amount));
+        armor.transfer(msg.sender, armorAmount);
     }
 
     function armorToVArmor(uint256 _armor) public view returns(uint256) {
-        if(totalSupply() == 0){
+        uint256 _pending = pending;
+        if(totalSupply().add(_pending) == 0){
             return _armor;
         }
-        return _armor.mul( totalSupply()).div(armor.balanceOf(address(this)));
+        return _armor.mul( totalSupply().add(_pending) ).div( armor.balanceOf( address(this) ) );
     }
 
     function vArmorToArmor(uint256 _varmor) public view returns(uint256) {
-        if(armor.balanceOf(address(this)) == 0){
+        if(armor.balanceOf( address(this) ) == 0){
             return 0;
         }
-        return _varmor.mul(armor.balanceOf(address(this))).div(totalSupply());
+        return _varmor.mul( armor.balanceOf( address(this) ) ).div( totalSupply().add(pending) );
     }
 
     /// @notice A record of each accounts delegate

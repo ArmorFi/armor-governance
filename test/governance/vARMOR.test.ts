@@ -97,65 +97,82 @@ describe("vARMOR", function(){
 
   describe("#withdraw", function(){
     beforeEach(async function(){
-      await armor.connect(user).approve(varmor.address, AMOUNT);
+      await armor.connect(user).approve(varmor.address, AMOUNT.mul(2));
+      await varmor.connect(user).deposit(AMOUNT);
+      await varmor.connect(user).approve(varmor.address, AMOUNT);
     });
-    describe("when totalSupply == 0", function(){
+    // test armor amounts
+    // test withdraw request and finalize
+    describe("when totalSupply will be == 0", function(){
       it("sanity check", async function(){
-        expect(await varmor.totalSupply()).to.equal(0);
+        expect(await varmor.totalSupply()).to.equal(AMOUNT);
       });
       describe("effect", function(){
         beforeEach( async function(){
-          await varmor.connect(user).deposit(AMOUNT);
+          await varmor.connect(user).requestWithdrawal(AMOUNT);
         });
 
-        it("totalSupply should increase", async function(){
-          expect(await varmor.totalSupply()).to.equal(AMOUNT);
+        it("totalSupply should decrease on request", async function(){
+          expect(await varmor.totalSupply()).to.equal(0);
         });
 
-        it("balanceOf should increase", async function(){
-          expect(await varmor.balanceOf(user.getAddress())).to.equal(AMOUNT);
+        it("user balanceOf should decrease", async function(){
+          expect(await varmor.balanceOf(user.getAddress())).to.equal(0);
         });
+
+        it("user armor should not increase", async function(){
+          expect(await armor.balanceOf(user.getAddress())).to.equal(0);
+        });
+
+        it("pending armor withdrawals should increase", async function(){
+          expect(await varmor.pending()).to.equal(AMOUNT);
+        });
+      
+        it("vArmorToArmor should be AMOUNT", async function(){
+          expect(await varmor.vArmorToArmor(AMOUNT)).to.equal(AMOUNT);
+        });
+
+        it("should finalize correctly", async function(){
+          await increase(1000000);
+          await varmor.connect(user).finalizeWithdrawal();
+          expect(await varmor.pending()).to.equal(0);
+          expect(await armor.balanceOf(user.getAddress())).to.equal(AMOUNT);
+          expect(await varmor.totalSupply()).to.equal(0);
+        });
+
       });
     });
-    describe("when totalSupply != 0", function(){
+    describe("when totalSupply will be > 0", function(){
       beforeEach(async function(){
-        await varmor.connect(user).deposit(AMOUNT);
         await armor.transfer(user.getAddress(), AMOUNT);
-        await armor.connect(user).approve(varmor.address, AMOUNT);
+        await varmor.connect(user).deposit(AMOUNT);
+        await varmor.connect(user).requestWithdrawal(AMOUNT);
       });
-      it("sanity check", async function(){
-        expect(await varmor.totalSupply()).to.not.equal(0);
+
+      it("totalSupply should decrease", async function(){
+        expect(await varmor.totalSupply()).to.equal(AMOUNT);
       });
-      describe("effect", function(){
-        beforeEach( async function(){
-          await varmor.connect(user).deposit(AMOUNT);
-        });
 
-        it("totalSupply should increase", async function(){
-          expect(await varmor.totalSupply()).to.equal(AMOUNT.mul(2));
-        });
-
-        it("balanceOf should increase", async function(){
-          expect(await varmor.balanceOf(user.getAddress())).to.equal(AMOUNT.mul(2));
-        });
+      it("pending should increase", async function(){
+        expect(await varmor.pending()).to.equal(AMOUNT);
       });
-      describe("when totalSupply != armor.balanceOf(varmor)",function(){
-        beforeEach( async function(){
-          await varmor.connect(user).deposit(AMOUNT);
-          await armor.transfer(varmor.address, AMOUNT.mul(2));
-          await armor.transfer(user.getAddress(), AMOUNT);
-          await armor.connect(user).approve(varmor.address, AMOUNT);
-          await varmor.connect(user).deposit(AMOUNT);
-        });
 
-        it("totalSupply should increase", async function(){
-          expect(await varmor.totalSupply()).to.equal(AMOUNT.mul(5).div(2) );
-        });
-
-        it("balanceOf should increase", async function(){
-          expect(await varmor.balanceOf(user.getAddress())).to.equal(AMOUNT.mul(5).div(2));
-        });
+      it("balanceOf should decrease", async function(){
+        expect(await varmor.balanceOf(user.getAddress())).to.equal(AMOUNT);
       });
+  
+      it("vArmorToArmor should still be AMOUNT", async function(){
+        expect(await varmor.vArmorToArmor(AMOUNT)).to.equal(AMOUNT);
+      });
+
+      it("should finalize correctly", async function(){
+        await increase(1000000);
+        await varmor.connect(user).finalizeWithdrawal();
+        expect(await varmor.pending()).to.equal(0);
+        expect(await armor.balanceOf(user.getAddress())).to.equal(AMOUNT);
+        expect(await varmor.totalSupply()).to.equal(AMOUNT);
+      });
+
     });
   });
 
