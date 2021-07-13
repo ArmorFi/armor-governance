@@ -3,6 +3,15 @@ import hre, { ethers } from "hardhat";
 import { Contract, Signer, BigNumber, constants } from "ethers";
 import { getBlockNumber, getTimestamp, increase, mine } from "../utils";
 
+const duration = {
+  seconds: function (val: Number) { return BigNumber.from(val); },
+  minutes: function (val: Number) { return BigNumber.from(val).mul(this.seconds('60')); },
+  hours: function (val: Number) { return BigNumber.from(val).mul(this.minutes('60')); },
+  days: function (val: Number) { return BigNumber.from(val).mul(this.hours('24')); },
+  weeks: function (val: Number) { return BigNumber.from(val).mul(this.days('7')); },
+  years: function (val: Number) { return BigNumber.from(val).mul(this.days('365')); },
+};
+
 describe("Governance", function(){
   let timelock: Contract;
   let token: Contract;
@@ -32,6 +41,10 @@ describe("Governance", function(){
     await increase(86400*2 + 101);
     await timelock.connect(admin).executeTransaction(timelock.address, 0, "setPendingGov(address)", abiCoder.encode(["address"], [gov.address]), eta);
     await gov.connect(admin).acceptTimelockGov();
+    await gov.connect(admin).propose([gov.address], [BigNumber.from(0)], [""], [gov.interface.encodeFunctionData('setVotingPeriod', [BigNumber.from(10)])], "testing");
+    await gov.connect(admin).queue(BigNumber.from(1));
+    await increase(duration.days(3).toNumber());
+    await gov.connect(admin).execute(BigNumber.from(1));
 
     await token.transfer(admin.getAddress(), "10000000000000000");
     await token.connect(admin).approve(varmor.address, "10000000000000000");
