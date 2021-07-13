@@ -53,6 +53,7 @@ describe("Governance", function(){
       await mine();
       await gov.connect(admin).propose([token.address], [0], ["transfer(address,uint256)"],[data], "going through with admin priv");
       await gov.connect(admin).queue(1);
+      console.log(await gov.state(1));
       await gov.connect(against).castVote(1, false);
       let mining = [];
 
@@ -75,6 +76,7 @@ describe("Governance", function(){
       await gov.connect(against).propose([token.address], [0], ["transfer(address,uint256)"],[data], "going through with admin priv");
       await mine();
       await mine();
+      console.log(await gov.state(1));
       await gov.connect(against).castVote(1, true);
       let mining = [];
       for(let i = 0; i <= 40320; i++){

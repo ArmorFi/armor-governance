@@ -283,12 +283,12 @@ contract GovernorAlpha {
             return ProposalState.Pending;
         } else if (block.number <= proposal.endBlock) {
             return ProposalState.Active;
+        } else if (proposal.executed) {
+            return ProposalState.Executed;
         } else if (proposal.forVotes <= proposal.againstVotes || proposal.forVotes < quorumVotes(proposal.endBlock)) {
             return ProposalState.Defeated;
         } else if (proposal.eta == 0) {
             return ProposalState.Succeeded;
-        } else if (proposal.executed) {
-            return ProposalState.Executed;
         } else if (block.timestamp >= add256(proposal.eta, timelock.GRACE_PERIOD())) {
             return ProposalState.Expired;
         } else {

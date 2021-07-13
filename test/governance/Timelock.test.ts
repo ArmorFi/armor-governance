@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import hre, { ethers } from "hardhat";
+import { ethers } from "hardhat";
 import { Contract, Signer, BigNumber, constants } from "ethers";
 import { getTimestamp, increase, mine } from "../utils";
 

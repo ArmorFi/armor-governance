@@ -4,7 +4,7 @@ pragma solidity 0.6.12;
 
 import "./interfaces/ITokenHelper.sol";
 
-import "./openzeppelin/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract vARMOR is ERC20("Voting Armor Token", "vARMOR") {
     using SafeMath for uint256;
