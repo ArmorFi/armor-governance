@@ -41,10 +41,11 @@ describe("Governance", function(){
     await increase(86400*2 + 101);
     await timelock.connect(admin).executeTransaction(timelock.address, 0, "setPendingGov(address)", abiCoder.encode(["address"], [gov.address]), eta);
     await gov.connect(admin).acceptTimelockGov();
-    await gov.connect(admin).propose([gov.address], [BigNumber.from(0)], [""], [gov.interface.encodeFunctionData('setVotingPeriod', [BigNumber.from(10)])], "testing");
+    await gov.connect(admin).propose([gov.address], [BigNumber.from(0)], [""], [gov.interface.encodeFunctionData('setVotingPeriod', [BigNumber.from(40320)])], "testing");
     await gov.connect(admin).queue(BigNumber.from(1));
     await increase(duration.days(3).toNumber());
     await gov.connect(admin).execute(BigNumber.from(1));
+    await increase(86400*2 + 101);
 
     await token.transfer(admin.getAddress(), "10000000000000000");
     await token.connect(admin).approve(varmor.address, "10000000000000000");
@@ -65,9 +66,9 @@ describe("Governance", function(){
       await varmor.connect(against).delegate(against.getAddress());
       await mine();
       await gov.connect(admin).propose([token.address], [0], ["transfer(address,uint256)"],[data], "going through with admin priv");
-      await gov.connect(admin).queue(1);
-      console.log(await gov.state(1));
-      await gov.connect(against).castVote(1, false);
+      await gov.connect(admin).queue(2);
+      console.log(await gov.state(2));
+      await gov.connect(against).castVote(2, false);
       let mining = [];
 
       for(let i = 0; i <= 40320; i++){
@@ -76,9 +77,9 @@ describe("Governance", function(){
 
       await Promise.all(mining);
 
-      await gov.connect(against).reject(1);
+      await gov.connect(against).reject(2);
       await increase((86400*2 + 101));
-      await expect(gov.connect(admin).execute(1)).to.be.reverted;
+      await expect(gov.connect(admin).execute(2)).to.be.reverted;
     });
     it("should be able to reject dao's proposal", async function(){
       await token.transfer(against.getAddress(), "20000000000000000");
@@ -89,19 +90,19 @@ describe("Governance", function(){
       await gov.connect(against).propose([token.address], [0], ["transfer(address,uint256)"],[data], "going through with admin priv");
       await mine();
       await mine();
-      console.log(await gov.state(1));
-      await gov.connect(against).castVote(1, true);
+      console.log(await gov.state(2));
+      await gov.connect(against).castVote(2, true);
       let mining = [];
       for(let i = 0; i <= 40320; i++){
         mining.push(mine());
       }
 
-      await gov.connect(against).queue(1);
+      await gov.connect(against).queue(2);
       await Promise.all(mining);
       await increase((86400*2 + 101));
 
-      await gov.connect(admin).cancel(1);
-      await expect(gov.connect(against).execute(1)).to.be.reverted;
+      await gov.connect(admin).cancel(2);
+      await expect(gov.connect(against).execute(2)).to.be.reverted;
     });
   });
 });

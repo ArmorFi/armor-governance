@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
-/// https://etherscan.io/address/0x5e4be8bc9637f0eaa1a755019e06a68ce081d58f#code
-
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
+import "hardhat/console.sol";
 import "./interfaces/IVArmor.sol";
 import "./interfaces/ITimelock.sol";
 contract GovernorAlpha {
@@ -277,6 +276,8 @@ contract GovernorAlpha {
     function state(uint proposalId) public view returns (ProposalState) {
         require(proposalCount >= proposalId && proposalId > 0, "GovernorAlpha::state: invalid proposal id");
         Proposal storage proposal = proposals[proposalId];
+        console.log("block.number: %s, proposal.startBlock: %s, endBlock: %s", block.number, proposal.startBlock,proposal.endBlock);
+
         if (proposal.canceled) {
             return ProposalState.Canceled;
         } else if (block.number <= proposal.startBlock) {
@@ -295,6 +296,7 @@ contract GovernorAlpha {
             return ProposalState.Queued;
         }
     }
+
 
     function castVote(uint proposalId, bool support) public {
         return _castVote(msg.sender, proposalId, support);
