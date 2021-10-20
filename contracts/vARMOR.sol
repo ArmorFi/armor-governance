@@ -44,11 +44,6 @@ contract vARMOR is ERC20("Voting Armor Token", "vARMOR") {
         }
     }
 
-    function slash(uint256 _amount) external {
-        require(msg.sender == governance, "!gov");
-        armor.transfer(msg.sender, _amount);
-    }
-
     function transferGov(address _newGov) external {
         require(msg.sender == governance, "!gov");
         governance = _newGov;

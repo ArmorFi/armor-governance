@@ -13,22 +13,22 @@ contract GovernorAlpha {
     /// @notice The name of this contract
     string public constant name = "VArmor Governor Alpha";
 
-    uint256 public quorumRatio;
+    uint256 public quorumAmount;
 
-    uint256 public thresholdRatio;
+    uint256 public thresholdAmount;
 
     uint256 public votingPeriod;
 
-    function setQuorumRatio(uint256 newRatio) external {
-        require(newRatio <= 1e18, "too big");
+    function setQuorumAmount(uint256 newAmount) external {
+        require(newAmount <= 1e27, "too big");
         require(msg.sender == address(timelock), "!timelock");
-        quorumRatio = newRatio;
+        quorumAmount = newAmount;
     }
 
-    function setThresholdRatio(uint256 newRatio) external {
-        require(newRatio <= 1e18, "too big");
+    function setThresholdAmount(uint256 newAmount) external {
+        require(newAmount <= 1e27, "too big");
         require(msg.sender == address(timelock), "!timelock");
-        thresholdRatio = newRatio;
+        thresholdAmount = newAmount;
     }
 
     function setVotingPeriod(uint256 newPeriod) external {
@@ -38,10 +38,10 @@ contract GovernorAlpha {
     }
 
     /// @notice The number of votes in support of a proposal required in order for a quorum to be reached and for a vote to succeed
-    function quorumVotes(uint256 blockNumber) public view returns (uint) { return varmor.getPriorTotalVotes(blockNumber) * quorumRatio  / 1e18; } // 4% of VArmor
+    function quorumVotes(uint256 blockNumber) public view returns (uint) { return quorumAmount; } // 4% of VArmor
 
     /// @notice The number of votes required in order for a voter to become a proposer
-    function proposalThreshold(uint256 blockNumber) public view returns (uint) { return varmor.getPriorTotalVotes(blockNumber) * thresholdRatio / 1e18; } // 1% of VArmor
+    function proposalThreshold(uint256 blockNumber) public view returns (uint) { return thresholdAmount; } // 1% of VArmor
 
     /// @notice The maximum number of actions that can be included in a proposal
     function proposalMaxOperations() public pure returns (uint) { return 10; } // 10 actions
@@ -146,8 +146,8 @@ contract GovernorAlpha {
         admin = admin_;
         timelock = ITimelock(timelock_);
         varmor = IVArmor(varmor_);
-        quorumRatio = quorum_;
-        thresholdRatio = threshold_;
+        quorumAmount = quorum_;
+        thresholdAmount = threshold_;
         votingPeriod = votingPeriod_;
     }
 
