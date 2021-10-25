@@ -1,4 +1,5 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: (c) Armor.Fi DAO, 2021
+
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
@@ -141,8 +142,8 @@ contract GovernorAlpha {
     event ProposalExecuted(uint id);
 
     constructor(address admin_, address timelock_, address varmor_, uint256 quorum_, uint256 threshold_, uint256 votingPeriod_) public {
-        require(quorum_ <= 1e18, "too big");
-        require(threshold_ <= 1e18, "too big");
+        require(quorum_ <= 1e27, "too big");
+        require(threshold_ <= 1e27, "too big");
         admin = admin_;
         timelock = ITimelock(timelock_);
         varmor = IVArmor(varmor_);
