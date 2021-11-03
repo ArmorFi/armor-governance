@@ -123,7 +123,7 @@ contract Vesting {
      * @param _to The address to transfer weight to.
      * @param _amountInFullTokens The amount of tokens (in 0 decimal format). We will not have fractions of tokens.
      **/
-    function transfer(address _to, uint256 _amountInFullTokens)
+    /*function transfer(address _to, uint256 _amountInFullTokens)
     external
     {
         require(_to != msg.sender, "May not transfer to yourself.");
@@ -148,5 +148,5 @@ contract Vesting {
         grantedToken[_to] = grantedToken[_to].add(amount);
 
         emit Transfer(msg.sender, _to, amount, block.timestamp);
-    }
+    }*/
 }
