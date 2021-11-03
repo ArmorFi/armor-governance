@@ -1,4 +1,4 @@
-import { ethers } from "hardhat";
+import { ethers, network } from "hardhat";
 import { providers, Contract, Signer, BigNumber } from "ethers";
 
 export function ether(amount: string) : BigNumber {
@@ -19,7 +19,6 @@ export async function getBlockNumber() : Promise<BigNumber> {
   return BigNumber.from(res);
 }
 
-
 export async function mine() {
   const signers = await ethers.getSigners();
   const signer = signers[0];
@@ -39,4 +38,12 @@ export async function getTimestamp() : Promise<BigNumber> {
   const signer = signers[0];
   const res = await (signer.provider as providers.JsonRpcProvider).send("eth_getBlockByNumber", ["latest", false]);
   return BigNumber.from(res.timestamp);
+}
+
+export async function impersonate(address: string) : Promise<Signer>{
+  await network.provider.request({
+    method: "hardhat_impersonateAccount",
+    params: [address],
+  });
+  return await ethers.getSigner(address);
 }
