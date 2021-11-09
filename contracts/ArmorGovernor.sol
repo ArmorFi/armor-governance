@@ -11,7 +11,7 @@ contract GovernorAlpha {
     address public pendingAdmin;
 
     /// @notice The name of this contract
-    string public constant name = "VArmor Governor Alpha";
+    string public constant name = "Armor Governor";
 
     uint256 public quorumRatio;
 
@@ -40,8 +40,12 @@ contract GovernorAlpha {
     /// @notice The number of votes in support of a proposal required in order for a quorum to be reached and for a vote to succeed
     function quorumVotes(uint256 blockNumber) public view returns (uint) { return varmor.getPriorTotalVotes(blockNumber) * quorumRatio  / 1e18; } // 4% of VArmor
 
+    function quorumVotes() external view returns(uint256) { return quorumVotes(block.timestamp);}
+
     /// @notice The number of votes required in order for a voter to become a proposer
     function proposalThreshold(uint256 blockNumber) public view returns (uint) { return varmor.getPriorTotalVotes(blockNumber) * thresholdRatio / 1e18; } // 1% of VArmor
+
+    function proposalThreshold() external view returns(uint256) { return proposalThreshold(block.timestamp);}
 
     /// @notice The maximum number of actions that can be included in a proposal
     function proposalMaxOperations() public pure returns (uint) { return 10; } // 10 actions
