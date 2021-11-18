@@ -15,7 +15,7 @@ contract Timelock {
     event QueueTransaction(bytes32 indexed txHash, address indexed target, uint value, string signature, bytes data, uint eta);
 
     uint public constant GRACE_PERIOD = 14 days;
-    uint public constant MINIMUM_DELAY = 2 days;
+    uint public constant MINIMUM_DELAY = 1 days;
     uint public constant MAXIMUM_DELAY = 30 days;
 
     address public gov;
@@ -25,7 +25,8 @@ contract Timelock {
     mapping (bytes32 => bool) public queuedTransactions;
 
 
-    constructor(address gov_, uint delay_) public {
+    function initialize(address gov_, uint delay_) public {
+        require(gov == address(0), "Contract already initialized.");
         require(delay_ >= MINIMUM_DELAY, "Timelock::constructor: Delay must exceed minimum delay.");
         require(delay_ <= MAXIMUM_DELAY, "Timelock::setDelay: Delay must not exceed maximum delay.");
 
@@ -45,7 +46,7 @@ contract Timelock {
     }
     
     function acceptGov() public {
-        require(msg.sender == pendingGov, "Timelock::acceptAdmin: Call must come from pengingGov.");
+        require(msg.sender == pendingGov, "Timelock::acceptAdmin: Call must come from pendingGov.");
         gov = msg.sender;
         pendingGov = address(0);
 
