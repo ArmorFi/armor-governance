@@ -55,7 +55,7 @@ describe("Governance", () => {
     armor = await TOKEN_FACTORY.deploy();
     varmor = await VARMOR_FACTORY.deploy(armor.address, admin.getAddress());
     timelock = await TIMELOCK_FACTORY.deploy(await admin.getAddress(), duration.days(2));
-    gov = await GOV_FACTORY.deploy(admin.getAddress(), timelock.address, varmor.address, QUORUM_RATIO, THRESHOLD_RATIO);
+    gov = await GOV_FACTORY.deploy(admin.getAddress(), timelock.address, varmor.address, QUORUM_RATIO, THRESHOLD_RATIO, 0);
     let eta:any;
     eta = (await latestTime()).add(duration.days(3));
     await timelock.connect(admin).queueTransaction(gov.address, BigNumber.from(0), "", gov.interface.encodeFunctionData('setPendingAdmin', [await admin.getAddress()]), eta);

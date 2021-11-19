@@ -6,7 +6,7 @@ import { increase, impersonate } from './utils';
 const vesting = '0xB08fE5DeBb2838d9f4A91132c3a87678007Da9A3';
 const governance = '0x1f28eD9D4792a567DaD779235c2b766Ab84D8E33';
 
-describe.only('fork test - vesting', async function() {
+describe.skip('fork test - vesting', async function() {
   let gov: Signer;
   let vest: Contract;
   let token: Contract;

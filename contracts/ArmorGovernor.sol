@@ -1,4 +1,5 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: (c) Armor.Fi DAO, 2021
+
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
@@ -13,22 +14,22 @@ contract GovernorAlpha {
     /// @notice The name of this contract
     string public constant name = "VArmor Governor Alpha";
 
-    uint256 public quorumRatio;
+    uint256 public quorumAmount;
 
-    uint256 public thresholdRatio;
+    uint256 public thresholdAmount;
 
     uint256 public votingPeriod;
 
-    function setQuorumRatio(uint256 newRatio) external {
-        require(newRatio <= 1e18, "too big");
+    function setQuorumAmount(uint256 newAmount) external {
+        require(newAmount <= 1e27, "too big");
         require(msg.sender == address(timelock), "!timelock");
-        quorumRatio = newRatio;
+        quorumAmount = newAmount;
     }
 
-    function setThresholdRatio(uint256 newRatio) external {
-        require(newRatio <= 1e18, "too big");
+    function setThresholdAmount(uint256 newAmount) external {
+        require(newAmount <= 1e27, "too big");
         require(msg.sender == address(timelock), "!timelock");
-        thresholdRatio = newRatio;
+        thresholdAmount = newAmount;
     }
 
     function setVotingPeriod(uint256 newPeriod) external {
@@ -38,10 +39,10 @@ contract GovernorAlpha {
     }
 
     /// @notice The number of votes in support of a proposal required in order for a quorum to be reached and for a vote to succeed
-    function quorumVotes(uint256 blockNumber) public view returns (uint) { return varmor.getPriorTotalVotes(blockNumber) * quorumRatio  / 1e18; } // 4% of VArmor
+    function quorumVotes() public view returns (uint) { return quorumAmount; } // 4% of VArmor
 
     /// @notice The number of votes required in order for a voter to become a proposer
-    function proposalThreshold(uint256 blockNumber) public view returns (uint) { return varmor.getPriorTotalVotes(blockNumber) * thresholdRatio / 1e18; } // 1% of VArmor
+    function proposalThreshold() public view returns (uint) { return thresholdAmount; } // 1% of VArmor
 
     /// @notice The maximum number of actions that can be included in a proposal
     function proposalMaxOperations() public pure returns (uint) { return 10; } // 10 actions
@@ -141,13 +142,13 @@ contract GovernorAlpha {
     event ProposalExecuted(uint id);
 
     constructor(address admin_, address timelock_, address varmor_, uint256 quorum_, uint256 threshold_, uint256 votingPeriod_) public {
-        require(quorum_ <= 1e18, "too big");
-        require(threshold_ <= 1e18, "too big");
+        require(quorum_ <= 1e27, "too big");
+        require(threshold_ <= 1e27, "too big");
         admin = admin_;
         timelock = ITimelock(timelock_);
         varmor = IVArmor(varmor_);
-        quorumRatio = quorum_;
-        thresholdRatio = threshold_;
+        quorumAmount = quorum_;
+        thresholdAmount = threshold_;
         votingPeriod = votingPeriod_;
     }
 
@@ -168,7 +169,7 @@ contract GovernorAlpha {
     }
 
     function propose(address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description) public returns (uint) {
-        require(varmor.getPriorVotes(msg.sender, sub256(block.number, 1)) > proposalThreshold(sub256(block.number,1)) || msg.sender == admin, "GovernorAlpha::propose: proposer votes below proposal threshold");
+        require(varmor.getPriorVotes(msg.sender, sub256(block.number, 1)) > proposalThreshold(), "GovernorAlpha::propose: proposer votes below proposal threshold");
         require(targets.length == values.length && targets.length == signatures.length && targets.length == calldatas.length, "GovernorAlpha::propose: proposal function information arity mismatch");
         require(targets.length != 0, "GovernorAlpha::propose: must provide actions");
         require(targets.length <= proposalMaxOperations(), "GovernorAlpha::propose: too many actions");
@@ -210,7 +211,7 @@ contract GovernorAlpha {
     function queue(uint proposalId) public {
         // executing the executed, canceled, expired proposal will be guarded in timelock so no check for state when admin
         Proposal storage proposal = proposals[proposalId];
-        require(state(proposalId) == ProposalState.Succeeded || msg.sender == admin, "GovernorAlpha::queue: proposal can only be queued if it is succeeded");
+        require(state(proposalId) == ProposalState.Succeeded, "GovernorAlpha::queue: proposal can only be queued if it is succeeded");
         uint eta = add256(block.timestamp, timelock.delay());
         for (uint i = 0; i < proposal.targets.length; i++) {
             _queueOrRevert(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], eta);
@@ -225,9 +226,8 @@ contract GovernorAlpha {
     }
 
     function execute(uint proposalId) public payable {
-        //admin can bypass this
         // executing the executed, canceled, expired proposal will be guarded in timelock so no check for state when admin
-        require(state(proposalId) == ProposalState.Queued || msg.sender == admin, "GovernorAlpha::execute: proposal can only be executed if it is queued");
+        require(state(proposalId) == ProposalState.Queued, "GovernorAlpha::execute: proposal can only be executed if it is queued");
         Proposal storage proposal = proposals[proposalId];
         proposal.executed = true;
         for (uint i = 0; i < proposal.targets.length; i++) {
@@ -236,26 +236,13 @@ contract GovernorAlpha {
         emit ProposalExecuted(proposalId);
     }
 
-    function reject(uint proposalId) public {
-        Proposal storage proposal = proposals[proposalId];
-        // We add this end to make sure it wasn't defeated for a lack of quorum. Would add a separate rejection state but want to change the contract as little as possible.
-        require(proposal.againstVotes >= quorumVotes(proposal.endBlock) && proposal.forVotes <= proposal.againstVotes, "GovernorAlpha::reject: proposal has not been defeated");
-
-        proposal.canceled = true;
-        for (uint i = 0; i < proposal.targets.length; i++) {
-            timelock.cancelTransaction(proposal.targets[i], proposal.values[i], proposal.signatures[i], proposal.calldatas[i], proposal.eta);
-        }
-
-        emit ProposalCanceled(proposalId);
-    }
-
     function cancel(uint proposalId) public {
         ProposalState state = state(proposalId);
         require(state != ProposalState.Executed, "GovernorAlpha::cancel: cannot cancel executed proposal");
 
         Proposal storage proposal = proposals[proposalId];
         //admin can bypass this
-        require(varmor.getPriorVotes(proposal.proposer, sub256(block.number, 1)) < proposalThreshold(sub256(block.number,1)) || msg.sender == admin, "GovernorAlpha::cancel: proposer above threshold");
+        require(varmor.getPriorVotes(proposal.proposer, sub256(block.number, 1)) < proposalThreshold() || msg.sender == admin, "GovernorAlpha::cancel: proposer above threshold");
 
         proposal.canceled = true;
         for (uint i = 0; i < proposal.targets.length; i++) {
@@ -277,20 +264,18 @@ contract GovernorAlpha {
     function state(uint proposalId) public view returns (ProposalState) {
         require(proposalCount >= proposalId && proposalId > 0, "GovernorAlpha::state: invalid proposal id");
         Proposal storage proposal = proposals[proposalId];
-        console.log("block.number: %s, proposal.startBlock: %s, endBlock: %s", block.number, proposal.startBlock,proposal.endBlock);
-
         if (proposal.canceled) {
             return ProposalState.Canceled;
         } else if (block.number <= proposal.startBlock) {
             return ProposalState.Pending;
         } else if (block.number <= proposal.endBlock) {
             return ProposalState.Active;
-        } else if (proposal.executed) {
-            return ProposalState.Executed;
-        } else if (proposal.forVotes <= proposal.againstVotes || proposal.forVotes < quorumVotes(proposal.endBlock)) {
+        } else if (proposal.forVotes <= proposal.againstVotes || proposal.forVotes < quorumVotes()) {
             return ProposalState.Defeated;
         } else if (proposal.eta == 0) {
             return ProposalState.Succeeded;
+        } else if (proposal.executed) {
+            return ProposalState.Executed;
         } else if (block.timestamp >= add256(proposal.eta, timelock.GRACE_PERIOD())) {
             return ProposalState.Expired;
         } else {
