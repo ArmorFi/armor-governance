@@ -1,6 +1,7 @@
 import { ethers } from "hardhat";
 import { Contract, Signer, BigNumber, constants } from "ethers";
 import { toChecksumAddress } from "ethereumjs-util";
+import { time } from "console";
 function stringToBytes32(str: string) : string {
   return ethers.utils.formatBytes32String(str);
 }
@@ -10,37 +11,27 @@ function ether(amount: string) : BigNumber {
 async function main() {
     let accounts: Signer[];
     let master: Contract;
-    let claimManager: Contract;
-    let exchangeManager: Contract;
+    let vesting: Contract;
+    let governance: Contract;
+    let timelock: Contract;
     let token: Contract;
-    let owner: Signer;
-    let user: Signer;
-    let dev: Signer;
-    let referrer: Signer;
+    let acct_one: Signer;
+    let acct_two: Signer;
 
-    master = await ethers.getContractAt("ArmorMaster", toChecksumAddress("0x1337def1900ceaabf5361c3df6af653d814c6348"));
+    accounts = await ethers.getSigners();
 
+    acct_one = accounts[0];
+    acct_two = accounts[1];
 
-    // Deploy proxy
-    // Deploy ExchangeManager
-    // Initialize with master and my own address
-    // Deploy ClaimManager
-    // Change proxy to point to new master
-    // Add ExchangeManager proxy as EXCHANGE module
+    const Timelock = await ethers.getContractFactory("Timelock", acct_one);
+    timelock = await Timelock.deploy();
+    console.log("Timelock: ",timelock.address);
 
-    const ExchangeFactory = await ethers.getContractFactory("ExchangeManager");
-    exchangeManager = await ExchangeFactory.deploy();
-    
-    // deploy proxy
+    const Governance = await ethers.getContractFactory("ArmorGovernor", acct_two);
+    governance = await Governance.deploy("0x1f28eD9D4792a567DaD779235c2b766Ab84D8E33",timelock.address,"0x5afeDef11AA9CD7DaE4023807810d97C20791dEC","30000000000000000000000000","1000000000000000000000000",17280);
+    console.log("Governance: ",governance.address);
 
-    // initialize proxy //await exchangeManager.initialize(master.address,toChecksumAddress("0x531ed64E65B1D2f569fEaBbAd73beF04ac249378"));
-
-    const ClaimFactory = await ethers.getContractFactory("ClaimManager");
-    claimManager = await ClaimFactory.deploy();
-    
-    // Switch ClaimManager proxy to this implementation
-
-    // Add ExchangeManager proxy as EXCHANGE module
+    await timelock.initialize(governance.address,172800)
 
 }
 
