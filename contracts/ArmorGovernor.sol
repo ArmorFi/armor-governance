@@ -12,7 +12,7 @@ contract GovernorAlpha {
     address public pendingAdmin;
 
     /// @notice The name of this contract
-    string public constant name = "VArmor Governor Alpha";
+    string public constant name = "Armor Governor Alpha";
 
     uint256 public quorumAmount;
 
