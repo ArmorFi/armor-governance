@@ -3,16 +3,15 @@
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "hardhat/console.sol";
 import "./interfaces/IVArmor.sol";
 import "./interfaces/ITimelock.sol";
-contract GovernorAlpha {
+contract ArmorGovernor {
     address public admin;
 
     address public pendingAdmin;
 
     /// @notice The name of this contract
-    string public constant name = "Armor Governor Alpha";
+    string public constant name = "Armor Governor";
 
     uint256 public quorumAmount;
 
@@ -50,17 +49,17 @@ contract GovernorAlpha {
     /// @notice The delay before voting on a proposal may take place, once proposed
     function votingDelay() public pure returns (uint) { return 1; } // 1 block
 
-    /// @notice The address of the VArmorswap Protocol Timelock
+    /// @notice The address of the Armor Protocol Timelock
     ITimelock public timelock;
 
-    /// @notice The address of the VArmorswap governance token
+    /// @notice The address of the Armor governance token
     IVArmor public varmor;
 
     /// @notice The total number of proposals
     uint public proposalCount;
 
     struct Proposal {
-        /// @notice VArmorque id for looking up a proposal
+        /// @notice Unique id for looking up a proposal
         uint id;
         /// @notice Creator of the proposal
         address proposer;

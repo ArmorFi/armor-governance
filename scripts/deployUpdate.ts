@@ -1,20 +1,11 @@
 import { ethers } from "hardhat";
 import { Contract, Signer, BigNumber, constants } from "ethers";
 import { toChecksumAddress } from "ethereumjs-util";
-import { time } from "console";
-function stringToBytes32(str: string) : string {
-  return ethers.utils.formatBytes32String(str);
-}
-function ether(amount: string) : BigNumber {
-    return ethers.utils.parseEther(amount);
-}
+
 async function main() {
     let accounts: Signer[];
-    let master: Contract;
-    let vesting: Contract;
     let governance: Contract;
     let timelock: Contract;
-    let token: Contract;
     let acct_one: Signer;
     let acct_two: Signer;
 
@@ -32,7 +23,6 @@ async function main() {
     console.log("Governance: ",governance.address);
 
     await timelock.initialize(governance.address,172800)
-
 }
 
 main()
