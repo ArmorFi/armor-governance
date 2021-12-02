@@ -2,10 +2,15 @@ import "@nomiclabs/hardhat-waffle";
 import "solidity-coverage";
 import "hardhat-spdx-license-identifier";
 import "hardhat-gas-reporter";
+import "@nomiclabs/hardhat-etherscan";
+
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
 
 export default {
+  etherscan: {
+    apiKey: "E4I32GBN6RGT3153SFHMQM69EVFGT6ZIX1",
+  },
   gasReporter: {
     enabled: true,
     currency: "USD",
@@ -50,7 +55,7 @@ export default {
       timeout: 6000000000000,
       forking: {
         url: "https://eth-mainnet.alchemyapi.io/v2/90dtUWHmLmwbYpvIeC53UpAICALKyoIu",
-        blockNumber: 13542760
+        blockNumber: 13726251
       }
     },
     coverage: {
