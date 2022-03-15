@@ -40,8 +40,12 @@ contract ArmorGovernor {
     /// @notice The number of votes in support of a proposal required in order for a quorum to be reached and for a vote to succeed
     function quorumVotes() public view returns (uint) { return quorumAmount; } // 4% of VArmor
 
+    function quorumVotes() external view returns(uint256) { return quorumVotes(block.timestamp);}
+
     /// @notice The number of votes required in order for a voter to become a proposer
     function proposalThreshold() public view returns (uint) { return thresholdAmount; } // 1% of VArmor
+
+    function proposalThreshold() external view returns(uint256) { return proposalThreshold(block.timestamp);}
 
     /// @notice The maximum number of actions that can be included in a proposal
     function proposalMaxOperations() public pure returns (uint) { return 10; } // 10 actions
